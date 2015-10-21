@@ -207,7 +207,7 @@ void NGLScene::paintGL()
       {
         ++totalSpheres;
         p.set(x,y,z);
-        if( m_cameras[0].isSphereInFrustum(p,1.0f) !=ngl::OUTSIDE )
+        if( m_cameras[0].isSphereInFrustum(p,1.0f) !=ngl::CameraIntercept::OUTSIDE )
         {
           ++numSpheresDrawn;
           // translate into position
