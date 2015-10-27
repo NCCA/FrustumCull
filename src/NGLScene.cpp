@@ -123,11 +123,11 @@ void NGLScene::initializeGL()
   shader->setShaderParam1i("Normalize",1);
 
   // now set the material and light values
-  ngl::Material m(ngl::GOLD);
+  ngl::Material m(ngl::STDMAT::GOLD);
   m.loadToShader("material");
 
 
-  ngl::Light L1(ngl::Vec3(-1,1,0),ngl::Colour(1,1,1,1),ngl::POINTLIGHT);
+  ngl::Light L1(ngl::Vec3(-1,1,0),ngl::Colour(1,1,1,1),ngl::LightModes::POINTLIGHT);
   ngl::Mat4 lt= m_cameras[m_cameraIndex].getViewMatrix();
   lt.transpose();
   L1.setTransform(lt);
