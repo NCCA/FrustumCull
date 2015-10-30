@@ -36,7 +36,7 @@ NGLScene::NGLScene()
   m_spinYFace=0;
   // now set the inital camera values
   m_cameraIndex=0;
-  m_moveMode=MOVEEYE;
+  m_moveMode=CamMode::MOVEEYE;
   m_drawHelp=true;
   m_fov=65.0;
   m_aspect=1024.0/768.0;
@@ -50,19 +50,19 @@ void NGLScene::createCameras()
   ngl::Camera cam;
   ngl::Camera Tcam;
   // set the different vectors for the camera positions
-  ngl::Vec3 EYE(0,0,1);
-  ngl::Vec3 LOOK=0.0;
-  ngl::Vec3 UP(0,1,0);
+  ngl::Vec3 Eye(0,0,1);
+  ngl::Vec3 Look=0.0;
+  ngl::Vec3 Up(0,1,0);
 
-  ngl::Vec3 TEYE(0,50,0);
-  ngl::Vec3 TLOOK=0.0;
-  ngl::Vec3 TUP(0,0,1);
+  ngl::Vec3 TEye(0,50,0);
+  ngl::Vec3 TLook=0.0;
+  ngl::Vec3 Tup(0,0,1);
 
   // finally set the cameras shape and position
-  cam.set(EYE,LOOK,UP);
+  cam.set(Eye,Look,Up);
   cam.setShape(m_fov,m_aspect, m_near,m_far);
   m_cameras.push_back(cam);
-  Tcam.set(TEYE,TLOOK,TUP);
+  Tcam.set(TEye,TLook,Tup);
   Tcam.setShape(80,m_aspect, 0.5,100);
   m_cameras.push_back(Tcam);
 }
@@ -72,14 +72,12 @@ NGLScene::~NGLScene()
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
 }
 
-void NGLScene::resizeGL(int _w, int _h)
+void NGLScene::resizeGL(QResizeEvent *_event)
 {
-  // set the viewport for openGL
-  glViewport(0,0,_w,_h);
+  m_width=_event->size().width()*devicePixelRatio();
+  m_height=_event->size().height()*devicePixelRatio();
   // now set the camera size values as the screen size has changed
-  update();
-  update();
-}
+ }
 
 
 void NGLScene::initializeGL()
@@ -137,12 +135,9 @@ void NGLScene::initializeGL()
   (*shader)["nglColourShader"]->use();
 
   shader->setShaderParam4f("Colour",1,1,1,1);
-  m_text = new ngl::Text(QFont("Courier",18));
+  m_text.reset( new ngl::Text(QFont("Courier",18)));
   m_text->setColour(1,1,0);
   m_text->setScreenSize(width(),height());
-  // as re-size is not explicitly called we need to do this.
-  glViewport(0,0,width(),height());
-
 }
 
 
@@ -344,15 +339,15 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_Escape : { QApplication::exit(EXIT_SUCCESS); break; }
   case Qt::Key_1 : { m_cameraIndex=0; break; }
   case Qt::Key_2 : { m_cameraIndex=1; break; }
-  case Qt::Key_3 : { updateNearFar(DECNEAR); break; }
-  case Qt::Key_4 : { updateNearFar(INCNEAR); break; }
-  case Qt::Key_5 : { updateNearFar(DECFAR); break; }
-  case Qt::Key_6 : { updateNearFar(INCFAR); break; }
+  case Qt::Key_3 : { updateNearFar(FarNear::DECNEAR); break; }
+  case Qt::Key_4 : { updateNearFar(FarNear::INCNEAR); break; }
+  case Qt::Key_5 : { updateNearFar(FarNear::DECFAR); break; }
+  case Qt::Key_6 : { updateNearFar(FarNear::INCFAR); break; }
 
-  case Qt::Key_E : { m_moveMode=MOVEEYE; break; }
-  case Qt::Key_L : { m_moveMode=MOVELOOK; break; }
-  case Qt::Key_B : { m_moveMode=MOVEBOTH; break; }
-  case Qt::Key_S : { m_moveMode=MOVESLIDE; break; }
+  case Qt::Key_E : { m_moveMode=CamMode::MOVEEYE; break; }
+  case Qt::Key_L : { m_moveMode=CamMode::MOVELOOK; break; }
+  case Qt::Key_B : { m_moveMode=CamMode::MOVEBOTH; break; }
+  case Qt::Key_S : { m_moveMode=CamMode::MOVESLIDE; break; }
   case Qt::Key_H : { m_drawHelp^=true; break; }
   case Qt::Key_Plus : { ++m_fov; setCameraShape(); break; }
   case Qt::Key_Minus :{ --m_fov; setCameraShape(); break; }
@@ -364,10 +359,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(keyIncrement,0,0);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(keyIncrement,0,0); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(keyIncrement,0,0); break;}
-      case MOVESLIDE : { m_cameras[0].slide(keyIncrement,0,0);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(keyIncrement,0,0);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(keyIncrement,0,0); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(keyIncrement,0,0); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(keyIncrement,0,0);    break;}
     }
   break;
   } // end move left
@@ -375,10 +370,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(-keyIncrement,0,0);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(-keyIncrement,0,0); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(-keyIncrement,0,0); break;}
-      case MOVESLIDE : { m_cameras[0].slide(-keyIncrement,0,0);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(-keyIncrement,0,0);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(-keyIncrement,0,0); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(-keyIncrement,0,0); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(-keyIncrement,0,0);    break;}
     }
   break;
   } // end move right
@@ -386,10 +381,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(0,keyIncrement,0);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(0,keyIncrement,0); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(0,keyIncrement,0); break;}
-      case MOVESLIDE : { m_cameras[0].slide(0,keyIncrement,0);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(0,keyIncrement,0);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(0,keyIncrement,0); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(0,keyIncrement,0); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(0,keyIncrement,0);    break;}
     }
   break;
   } // end move up
@@ -397,10 +392,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(0,-keyIncrement,0);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(0,-keyIncrement,0); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(0,-keyIncrement,0); break;}
-      case MOVESLIDE : { m_cameras[0].slide(0,-keyIncrement,0);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(0,-keyIncrement,0);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(0,-keyIncrement,0); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(0,-keyIncrement,0); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(0,-keyIncrement,0);    break;}
     }
   break;
   } // end move down
@@ -408,10 +403,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(0,0,keyIncrement);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(0,0,keyIncrement); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(0,0,keyIncrement); break;}
-      case MOVESLIDE : { m_cameras[0].slide(0,0,keyIncrement);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(0,0,keyIncrement);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(0,0,keyIncrement); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(0,0,keyIncrement); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(0,0,keyIncrement);    break;}
     }
   break;
   } // end move out
@@ -419,10 +414,10 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   {
     switch (m_moveMode)
     {
-      case MOVEEYE :   { m_cameras[0].moveEye(0,0,-keyIncrement);  break;}
-      case MOVELOOK :  { m_cameras[0].moveLook(0,0,-keyIncrement); break;}
-      case MOVEBOTH :  { m_cameras[0].moveBoth(0,0,-keyIncrement); break;}
-      case MOVESLIDE : { m_cameras[0].slide(0,0,-keyIncrement);    break;}
+      case CamMode::MOVEEYE :   { m_cameras[0].moveEye(0,0,-keyIncrement);  break;}
+      case CamMode::MOVELOOK :  { m_cameras[0].moveLook(0,0,-keyIncrement); break;}
+      case CamMode::MOVEBOTH :  { m_cameras[0].moveBoth(0,0,-keyIncrement); break;}
+      case CamMode::MOVESLIDE : { m_cameras[0].slide(0,0,-keyIncrement);    break;}
     }
   break;
   } // end move in
@@ -442,9 +437,9 @@ void NGLScene::setCameraShape()
 
 }
 
-void NGLScene::updateNearFar(FARNEAR _which)
+void NGLScene::updateNearFar(FarNear _which)
 {
-	if(_which ==DECNEAR)
+	if(_which ==FarNear::DECNEAR)
 	{
 
 		if(--m_near==0.0)
@@ -452,7 +447,7 @@ void NGLScene::updateNearFar(FARNEAR _which)
 			m_near=1.0;
 		}
 	}
-	else if(_which == INCNEAR)
+	else if(_which == FarNear::INCNEAR)
 	{
 
 		if(++m_near > m_far)
@@ -460,14 +455,14 @@ void NGLScene::updateNearFar(FARNEAR _which)
 			m_near=m_far-1;
 		}
 	}
-	else if(_which == DECFAR)
+	else if(_which == FarNear::DECFAR)
 	{
 		if(--m_far < m_near)
 		{
 			m_far=m_near+1;
 		}
 	}
-	else if(_which == INCFAR)
+	else if(_which == FarNear::INCFAR)
 	{
 		++m_far;
 	}
