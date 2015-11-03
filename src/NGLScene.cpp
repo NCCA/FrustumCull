@@ -76,8 +76,13 @@ void NGLScene::resizeGL(QResizeEvent *_event)
 {
   m_width=_event->size().width()*devicePixelRatio();
   m_height=_event->size().height()*devicePixelRatio();
-  // now set the camera size values as the screen size has changed
- }
+}
+
+void NGLScene::resizeGL(int _w , int _h)
+{
+  m_width=_w*devicePixelRatio();
+  m_height=_h*devicePixelRatio();
+}
 
 
 void NGLScene::initializeGL()
